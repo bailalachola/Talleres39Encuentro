@@ -1,0 +1,704 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Los 99 talleres del 39° Encuentro Plurinacional en Córdoba: buscá, filtrá y mirá cuáles te quedan más cerca caminando. Hecho por Baila La Chola.">
+<meta name="theme-color" content="#5b2a86">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📍</text></svg>">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<!-- Google Analytics 4: pegá tu ID de medición acá (formato G-XXXXXXXXXX). Mientras diga G-XXXXXXXXXX no se carga nada. -->
+<script>
+window.GA_ID = "G-YXJ1DLFP8S";
+window.dataLayer = window.dataLayer || [];
+function gtag(){ dataLayer.push(arguments); }
+(function(){
+  if(!/^G-[A-Z0-9]+$/.test(GA_ID) || /^G-X+$/.test(GA_ID)) return;
+  var s=document.createElement("script"); s.async=true; s.src="https://www.googletagmanager.com/gtag/js?id="+GA_ID; document.head.appendChild(s);
+  gtag("js", new Date()); gtag("config", GA_ID, {send_page_view:false}); // las páginas vistas las manda la web, con nombre (ver syncNav)
+})();
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}</style>
+<title>Talleres 39° Encuentro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap">
+<style>
+/* Layout: one-screen app — sticky search header with origin chip, LISTA | MAPA switch, taller cards or a street map; distances from the phone (or the school) */
+:root{
+  --bg:#f6f3f8; --surface:#ffffff; --fg:#1f1430; --muted:#6a5f78; --line:#e2dbea;
+  --violet:#5b2a86; --violet-soft:#efe6f7; --green:#1f8a4c; --green-soft:#e2f3e8;
+  --drum:#c2410c; --drum-soft:#fdeadf; --mapbg:#ece7f2; --ring:#c9bdd8;
+  --f-display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
+  --f-body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --r:12px; --me:#1a73e8; --tiles:none;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#150e1f; --surface:#211830; --fg:#f2ecf8; --muted:#b2a6c2; --line:#372b48;
+  --violet:#c49bf0; --violet-soft:#33244a; --green:#5fd391; --green-soft:#183427;
+  --drum:#fb8a4f; --drum-soft:#3d2216; --mapbg:#1b1428; --ring:#4a3b5e; --me:#6ea8ff; --tiles:invert(1) hue-rotate(180deg) brightness(.85) contrast(.9); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#150e1f; --surface:#211830; --fg:#f2ecf8; --muted:#b2a6c2; --line:#372b48;
+  --violet:#c49bf0; --violet-soft:#33244a; --green:#5fd391; --green-soft:#183427;
+  --drum:#fb8a4f; --drum-soft:#3d2216; --mapbg:#1b1428; --ring:#4a3b5e; --me:#6ea8ff; --tiles:invert(1) hue-rotate(180deg) brightness(.85) contrast(.9); color-scheme:dark}
+
+[hidden]{display:none!important}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:16px;line-height:1.4;-webkit-text-size-adjust:100%}
+*{box-sizing:border-box}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--violet);outline-offset:2px}
+a{color:inherit}
+
+.app{height:100%;display:flex;flex-direction:column;max-width:760px;margin:0 auto}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);padding:12px 16px 10px;display:flex;flex-direction:column;gap:10px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+h1{font-family:var(--f-display);font-weight:900;font-size:1.9rem;line-height:.95;margin:0;letter-spacing:.01em;text-transform:uppercase;text-wrap:balance}
+h1 small{display:block;font-size:.8rem;margin-top:3px;font-weight:700;letter-spacing:.06em;color:var(--muted)}
+.zero{font-size:.78rem;color:var(--green);background:var(--green-soft);border-radius:999px;padding:4px 10px;white-space:nowrap;font-weight:700}
+.searchrow{display:flex;gap:8px}
+.search{flex:1;min-width:0;position:relative}
+.search input{width:100%;height:46px;border:2px solid var(--line);background:var(--surface);border-radius:var(--r);padding:0 40px 0 14px;font-size:16px}
+.search input:focus{border-color:var(--violet);outline:none}
+.clear{position:absolute;right:6px;top:7px;width:32px;height:32px;border:0;background:none;color:var(--muted);font-size:1.3rem;cursor:pointer;border-radius:8px}
+.fbtn{height:46px;padding:0 14px;border:2px solid var(--line);border-radius:var(--r);background:var(--surface);font-weight:700;cursor:pointer;white-space:nowrap}
+.fbtn[aria-expanded="true"],.fbtn.on{border-color:var(--violet);color:var(--violet)}
+.filters{display:grid;grid-template-columns:1fr;gap:8px}
+.filters label{display:flex;flex-direction:column;gap:3px;font-size:.75rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.filters select{height:42px;border:2px solid var(--line);border-radius:10px;background:var(--surface);padding:0 10px;font-size:15px;text-transform:none;letter-spacing:0;font-weight:400;color:var(--fg);min-width:0;width:100%}
+.ctrlrow{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.seg{display:inline-flex;background:var(--violet-soft);border-radius:999px;padding:3px}
+.seg button{border:0;background:none;padding:7px 18px;border-radius:999px;font-weight:700;letter-spacing:.08em;font-size:.85rem;cursor:pointer;color:var(--violet)}
+.seg button[aria-pressed="true"]{background:var(--violet);color:var(--surface)}
+.sort{display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted)}
+.sort select{border:0;background:none;font-weight:700;color:var(--fg);font-size:.9rem;padding:4px 0;max-width:12rem}
+.count{font-size:.85rem;color:var(--muted)}
+
+main{flex:1;min-height:0;position:relative}
+#listView{height:100%;overflow-y:auto;padding:12px 16px 32px;display:flex;flex-direction:column;gap:10px;-webkit-overflow-scrolling:touch}
+
+.pena{background:var(--drum-soft);border-radius:var(--r);padding:12px 14px;display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:center}
+.pena .ico{font-size:1.6rem;grid-row:span 2}
+.pena b{font-family:var(--f-display);font-size:1.2rem;letter-spacing:.02em;text-transform:uppercase;color:var(--drum)}
+.pena p{margin:0;font-size:.88rem}
+.pena .acts{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+
+.group{font-family:var(--f-display);font-weight:800;font-size:1rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:10px 2px 0;display:flex;justify-content:space-between;gap:12px}
+.group span:last-child{color:var(--green);font-variant-numeric:tabular-nums;white-space:nowrap}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:6px}
+.card h2{margin:0;font-size:1.06rem;line-height:1.3;font-weight:700;text-wrap:pretty}
+.num{font-family:var(--f-display);font-weight:900;font-size:1.35rem;color:var(--violet);margin-right:2px;font-variant-numeric:tabular-nums}
+.eje{font-size:.8rem;color:var(--muted);line-height:1.3}
+.eje b{color:var(--violet);font-weight:700}
+.tag{display:inline-block;font-size:.72rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;background:var(--violet-soft);color:var(--violet);border-radius:6px;padding:1px 6px;margin-left:4px;vertical-align:1px}
+.sede{font-size:.92rem;margin-top:2px}
+.sede strong{display:block}
+.sede span{color:var(--muted)}
+.dist{font-weight:700;font-size:1rem;color:var(--green);font-variant-numeric:tabular-nums;display:flex;gap:6px 14px;flex-wrap:wrap}
+.approx{font-size:.78rem;color:var(--drum);font-weight:700}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:40px;padding:0 14px;border-radius:10px;font-weight:700;font-size:.9rem;text-decoration:none;cursor:pointer;border:2px solid var(--violet);background:none;color:var(--violet)}
+.btn.primary{background:var(--violet);color:var(--surface)}
+.btn.drum{border-color:var(--drum);color:var(--drum)}
+.btn.wa{border-color:var(--green);color:var(--green)}
+.btn.wa svg{width:18px;height:18px;fill:currentColor;flex:none}
+.wa-mini{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;color:var(--green);background:var(--green-soft);vertical-align:middle;margin-left:6px;text-decoration:none}
+.wa-mini svg{width:17px;height:17px;fill:currentColor}
+.card.flash{border-color:var(--violet);box-shadow:0 0 0 3px var(--violet-soft)}
+.empty{padding:30px 8px;text-align:center;color:var(--muted)}
+.foot{font-size:.78rem;color:var(--muted);padding:16px 2px 0;line-height:1.5}
+.credit{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:8px;padding:18px 12px;border-top:1px solid var(--line);font-size:.92rem;color:var(--muted);text-align:center}
+.credit a{font-family:var(--f-display);font-weight:900;font-size:1.25rem;letter-spacing:.02em;color:var(--drum);text-decoration:none}
+.credit a:hover{text-decoration:underline}
+.legend .by a{color:var(--drum);font-weight:700;text-decoration:none}
+mark{background:var(--violet-soft);color:inherit;border-radius:3px;padding:0 1px}
+
+/* Map */
+#mapView{position:absolute;inset:0;background:var(--mapbg);overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+#leafletMap{position:absolute;inset:0;background:var(--mapbg)}
+.leaflet-tile-pane{filter:var(--tiles)}
+.lf{border:0;background:none}
+.lf.sede{border-radius:50%;background:var(--violet);color:var(--surface);font-family:var(--f-display);font-weight:900;font-size:1.05rem;box-shadow:0 0 0 3px var(--surface);display:flex!important;align-items:center;justify-content:center}
+.lf.sede.dim{background:var(--ring);color:var(--muted);box-shadow:0 0 0 2px var(--surface);font-size:.8rem}
+.lf.sede.sel{box-shadow:0 0 0 3px var(--surface),0 0 0 6px var(--violet)}
+.lf.home,.lf.drumk{display:flex!important;align-items:center;justify-content:center;font-size:1.3rem;box-shadow:0 0 0 3px var(--surface)}
+.lf.home{background:var(--green);border-radius:12px}
+.lf.drumk{background:var(--drum);border-radius:50%}
+.leaflet-tooltip.mlbl{font:700 .72rem var(--f-body);background:var(--surface);color:var(--fg);border:0;box-shadow:0 1px 4px rgba(0,0,0,.2);padding:2px 6px}
+.leaflet-tooltip.mlbl:before{display:none}
+.leaflet-tooltip.ringlbl{font:700 .7rem var(--f-body);background:none;border:0;box-shadow:none;color:var(--violet);padding:0}
+.leaflet-tooltip.ringlbl:before{display:none}
+.leaflet-container{font-family:var(--f-body)}
+.mk{position:absolute;transform:translate(-50%,-50%);border:0;padding:0;cursor:pointer;background:none}
+.mk.sede{width:34px;height:34px;border-radius:50%;background:var(--violet);color:var(--surface);font-family:var(--f-display);font-weight:900;font-size:1.05rem;box-shadow:0 0 0 3px var(--surface)}
+.mk.sede.dim{background:var(--ring);color:var(--muted);box-shadow:0 0 0 2px var(--surface);width:24px;height:24px;font-size:.8rem}
+.mk.sede.sel{box-shadow:0 0 0 3px var(--surface),0 0 0 6px var(--violet);z-index:3}
+.mk.home,.mk.drumk{width:40px;height:40px;border-radius:12px;font-size:1.3rem;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 3px var(--surface);z-index:2}
+.mk.home{background:var(--green)}
+.mk.drumk{background:var(--drum);border-radius:50%}
+.mlabel{position:absolute;transform:translate(-50%,0);font-size:.72rem;font-weight:700;white-space:nowrap;pointer-events:none;color:var(--fg);background:color-mix(in srgb,var(--surface) 85%,transparent);padding:1px 5px;border-radius:5px}
+.mapctl{position:absolute;right:10px;top:96px;display:flex;flex-direction:column;gap:6px;z-index:1000}
+.mapctl button{width:42px;height:42px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font-size:1.2rem;font-weight:700;cursor:pointer}
+.legend{position:absolute;left:10px;top:10px;z-index:1000;background:color-mix(in srgb,var(--surface) 92%,transparent);border-radius:10px;padding:6px 9px;font-size:.7rem;display:flex;flex-direction:column;gap:2px;max-width:calc(100% - 84px)}
+.sheet:not([hidden]) ~ .legend,.legend.hide{display:none}
+.legend i{font-style:normal;color:var(--muted)}
+.scale{position:absolute;left:12px;bottom:14px;z-index:5;font-size:.72rem;font-weight:700;color:var(--muted)}
+.scale div{height:6px;border:2px solid var(--muted);border-top:0;margin-top:2px}
+
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:1100;background:var(--surface);border-radius:18px 18px 0 0;box-shadow:0 -6px 24px rgba(20,10,30,.18);max-height:55%;display:flex;flex-direction:column;padding-bottom:env(safe-area-inset-bottom,0px)}
+.sheet .grab{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:14px 16px 8px}
+.sheet h3{margin:0;font-family:var(--f-display);font-weight:800;font-size:1.45rem;line-height:1;text-transform:uppercase;letter-spacing:.01em;text-wrap:balance}
+.sheet .x{border:0;background:var(--violet-soft);color:var(--violet);width:36px;height:36px;border-radius:50%;font-size:1.2rem;cursor:pointer;flex:none}
+.sheet .body{overflow-y:auto;padding:0 16px 16px;display:flex;flex-direction:column;gap:8px}
+.sheet .addr{color:var(--muted);font-size:.92rem}
+.sheet .big{font-size:1.05rem;font-weight:700;color:var(--green);font-variant-numeric:tabular-nums;display:flex;flex-direction:column;gap:2px}
+.sheet .n{font-family:var(--f-display);font-weight:800;font-size:1.05rem;letter-spacing:.04em;text-transform:uppercase;margin-top:4px}
+.sheet ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.sheet li{padding:8px 0;border-top:1px solid var(--line);font-size:.95rem;line-height:1.3}
+.sheet li.off{color:var(--muted);opacity:.6}
+.sheet li .num{font-size:1.05rem}
+@media (min-width:600px){ .filters{grid-template-columns:repeat(3,minmax(0,1fr))} h1{font-size:2.3rem} }
+@media (prefers-reduced-motion:no-preference){ .sheet{animation:up .18s ease-out} @keyframes up{from{transform:translateY(20px);opacity:.6}} }
+
+.originwrap{position:relative;flex:none}
+.zero{border:0;cursor:pointer;font:inherit;font-size:.8rem}
+.homelink{color:inherit;text-decoration:none;display:block}
+.homelink:hover small{text-decoration:underline}
+.ttl{display:flex;flex-direction:column;gap:4px;min-width:0}
+.byline{font-size:.8rem;color:var(--drum);text-decoration:none;line-height:1.2}
+.byline b{font-family:var(--f-display);font-weight:900;font-size:.98rem;letter-spacing:.03em;text-transform:uppercase}
+.byline:hover b{text-decoration:underline}
+.brand{align-items:flex-start}
+.zero.warn{color:var(--drum);background:var(--drum-soft)}
+.omenu{position:absolute;right:0;top:calc(100% + 6px);z-index:30;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 24px rgba(20,10,30,.18);padding:6px;display:flex;flex-direction:column;min-width:250px}
+.omenu .olbl{font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:6px 10px 4px}
+.omenu button{border:0;background:none;text-align:left;padding:10px;border-radius:8px;cursor:pointer;font-weight:700;display:flex;flex-direction:column;gap:1px}
+.omenu button small{font-weight:400;color:var(--muted);font-size:.78rem}
+.omenu button[aria-checked="true"]{background:var(--violet-soft);color:var(--violet)}
+.note{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;font-size:.9rem;line-height:1.45}
+.note.strong{border-color:var(--violet);background:var(--violet-soft)}
+.note .acts{margin-top:8px}
+.linkbtn{border:0;background:none;padding:0;color:var(--violet);font-weight:700;text-decoration:underline;cursor:pointer;font-size:inherit;text-align:left}
+.dist.off{font-weight:400}
+.dist.big{flex-direction:column;gap:2px;font-size:1.05rem}
+.pdist .dist{color:var(--drum)}
+.pena .pdist,.pena .acts{grid-column:1/-1}
+.pena .dist.off .linkbtn{color:var(--drum)}
+.me{width:18px!important;height:18px!important;border-radius:50%;background:var(--me);box-shadow:0 0 0 3px #fff,0 0 8px rgba(0,0,0,.35)}
+</style>
+</head>
+<body>
+
+
+<div class="app">
+<header>
+  <div class="brand">
+    <div class="ttl"><h1><a class="homelink" href="./" aria-label="Talleres 39° Encuentro, ir al inicio">Talleres<small>39° Encuentro · Córdoba</small></a></h1><a class="byline" href="https://www.instagram.com/bailalachola/" target="_blank" rel="noopener" data-ev="click_instagram" data-pos="header">🥁 Hecho por <b>Baila La Chola</b></a></div>
+    <div class="originwrap"><button class="zero" id="originBtn" aria-haspopup="true" aria-expanded="false">📍 Activar ubicación</button>
+      <div class="omenu" id="originMenu" hidden role="menu"><span class="olbl">Calcular distancias desde</span><button id="oGps" role="menuitemradio" aria-checked="true">📍 Mi ubicación <small>en tiempo real</small></button><button id="oEsc" role="menuitemradio" aria-checked="false">🏠 Escuela Esteban Echeverría <small>base de Baila La Chola</small></button></div></div>
+  </div>
+  <div class="searchrow">
+    <div class="search">
+      <input id="q" type="search" inputmode="search" autocomplete="off" placeholder="Buscá: número, tema, eje, sede…" aria-label="Buscar talleres">
+      <button class="clear" id="qclear" aria-label="Borrar búsqueda" hidden>×</button>
+    </div>
+    <button class="fbtn" id="fbtn" aria-expanded="false" aria-controls="filters">Filtros</button>
+  </div>
+  <div class="filters" id="filters" hidden>
+    <label for="fEje">Eje<select id="fEje"><option value="">Todos los ejes</option></select></label>
+    <label for="fSede">Sede<select id="fSede"><option value="">Todas las sedes</option></select></label>
+    <label for="fSub">Subcategoría (eje 10)<select id="fSub"><option value="">Todas</option></select></label>
+  </div>
+  <div class="ctrlrow">
+    <div class="seg" role="group" aria-label="Vista">
+      <button id="vList" aria-pressed="true">LISTA</button><button id="vMap" aria-pressed="false">MAPA</button>
+    </div>
+    <div class="sort" id="sortWrap"><label for="sort">Orden:</label>
+      <select id="sort"><option value="cerca">Más cerca mío</option><option value="num">Por número</option><option value="eje">Por eje</option></select>
+    </div>
+    <span class="count" id="count" hidden></span>
+  </div>
+</header>
+<main>
+  <div id="listView"></div>
+  <div id="mapView" hidden>
+    <div id="leafletMap"></div>
+    <div class="mapctl">
+      <button id="zfit" aria-label="Ver todas las sedes" title="Ver todo">⤢</button><button id="zme" aria-label="Centrar en mi ubicación" title="Mi ubicación">📍</button>
+    </div>
+    <div class="sheet" id="sheet" hidden></div>
+    <div class="legend"><span><b style="color:var(--me)">●</b> Vos</span><span>🏠 Escuela · base de Baila La Chola</span><span>🥁 Peña / Baila La Chola</span><span><b style="color:var(--violet)">●</b> Sede · número = talleres</span><i>Anillos: cada 1 km en línea recta desde el punto de partida.</i><span class="by">Hecho por <a href="https://www.instagram.com/bailalachola/" target="_blank" rel="noopener" data-ev="click_instagram">@bailalachola</a></span></div>
+  </div>
+</main>
+</div>
+
+<script>
+const DATA = {"ejes":[{"id":1,"nombre":"Movimientos de mujeres, feministas, transfeministas y de la disidencia sexual: activismos y organización en contextos de crueldad"},{"id":2,"nombre":"Soberanías de la tierra, los cuerpos y los territorios"},{"id":3,"nombre":"Identidades y disidencias sexo-políticas, sexualidades, afectos, placer"},{"id":4,"nombre":"Niñeces, juventudes y personas mayores: protagonismos y cuidados desde la interseccionalidad"},{"id":5,"nombre":"Violencias patriarcales, resistencias y potencias transformadoras"},{"id":6,"nombre":"Violencias Estatales y políticas represivas"},{"id":7,"nombre":"Naciones y pueblos pre-existentes, afro-indígenas, espiritualidad y territorios"},{"id":8,"nombre":"Derechos humanos a 50 años del golpe - repensar la democracia desde los transfeminismos, continuidades desde la dictadura"},{"id":9,"nombre":"Trabajos de cuidado, división sexual del trabajo y crianzas"},{"id":10,"nombre":"Derechos y disputas: Salud, Educación, Trabajo, Cultura, Deportes, Ciencia y Técnica"},{"id":11,"nombre":"Derechos amenazados: ESI, aborto"},{"id":12,"nombre":"Horizontes emancipatorios frente al capitalismo y patriarcado en guerra: colonialismo, imperialismos, fascismos y antropocentrismo"},{"id":13,"nombre":"Movimientos sociales y organización barrial"}],"sedes":[{"id":"S01","nombre":"Facultad de Cs. Exactas UNC","direccion":"Vélez Sársfield 299","lat":-31.418591,"lng":-64.18801,"geo_tipo":"PointAddress","geo_match":"Av. Vélez Sársfield 299, Centro","dist_m":4168,"min_pie":56,"revisar":false},{"id":"S02","nombre":"Facultad de Derecho UNC","direccion":"Obispo Trejo 242","lat":-31.418336,"lng":-64.186619,"geo_tipo":"PointAddress","geo_match":"Obispo Trejo 242, Centro","dist_m":3938,"min_pie":53,"revisar":false},{"id":"S03","nombre":"Escuela Juan Bautista Alberdi","direccion":"Av. General Paz 488","lat":-31.409627,"lng":-64.184258,"geo_tipo":"PointAddress","geo_match":"Av. General Paz 488, Centro","dist_m":4167,"min_pie":56,"revisar":false},{"id":"S04","nombre":"Esc. Gral. Francisco Ortiz de Ocampo","direccion":"Salta 250","lat":-31.414767,"lng":-64.177439,"geo_tipo":"PointAddress","geo_match":"Salta 250, Centro","dist_m":3044,"min_pie":41,"revisar":false},{"id":"S05","nombre":"Instituto Superior Carlos Leguizamón","direccion":"Concepción Arenal 1177","lat":-31.4348,"lng":-64.1768,"geo_tipo":"POI","geo_match":"Instituto Superior Carlos Alberto Leguizamón · Concepción Arenal 1177, Parque Sarmiento","dist_m":3641,"min_pie":49,"revisar":false},{"id":"S06","nombre":"Escuela Santiago Derqui","direccion":"Santa Rosa 340","lat":-31.411143,"lng":-64.18718,"geo_tipo":"PointAddress","geo_match":"Santa Rosa 340, Centro","dist_m":4089,"min_pie":55,"revisar":false},{"id":"S07","nombre":"C.E.N.M.A. Salud","direccion":"Deán Funes 417","lat":-31.414348,"lng":-64.189919,"geo_tipo":"PointAddress","geo_match":"Deán Funes 417, Centro","dist_m":4092,"min_pie":55,"revisar":false},{"id":"S08","nombre":"Escuela Mariano Moreno","direccion":"Santa Rosa 1299","lat":-31.40749,"lng":-64.200301,"geo_tipo":"PointAddress","geo_match":"Santa Rosa 1299, Alberdi","dist_m":5386,"min_pie":72,"revisar":false},{"id":"S09","nombre":"I.P.E.M. N° 115 Domingo Faustino Sarmiento","direccion":"Av. Colón 1329","lat":-31.408408,"lng":-64.201204,"geo_tipo":"PointAddress","geo_match":"Av. Colón 1329, Alberdi","dist_m":5340,"min_pie":72,"revisar":false},{"id":"S10","nombre":"I.P.E.M. Nº 86 Gabriela Mistral","direccion":"Av. Humberto Primo 145","lat":-31.4099,"lng":-64.1837,"geo_tipo":"POI","geo_match":"IPEM N° 86 Gabriela Mistral · Humberto Primo 147, Centro","dist_m":4127,"min_pie":55,"revisar":false},{"id":"S11","nombre":"Esc. Sup. de Comercio Manuel Belgrano","direccion":"La Rioja 1450","lat":-31.405482,"lng":-64.201767,"geo_tipo":"PointAddress","geo_match":"La Rioja 1450, Alberdi","dist_m":5699,"min_pie":76,"revisar":false},{"id":"S12","nombre":"I.P.E.M. N° 38 Francisco Pablo de Mauro","direccion":"Wenceslao Paunero 699","lat":-31.43352,"lng":-64.17851,"geo_tipo":"POI","geo_match":"IPEM N° 38 · Wenceslao Paunero, Parque Sarmiento","dist_m":3686,"min_pie":49,"revisar":false},{"id":"S13","nombre":"Esc. Gob. José Manuel Álvarez","direccion":"Wenceslao Paunero esq. Arenal","lat":-31.434327,"lng":-64.178691,"geo_tipo":"StreetInt","geo_match":"Wenceslao Paunero y Concepción Arenal, Parque Sarmiento","dist_m":3841,"min_pie":51,"revisar":false},{"id":"S14","nombre":"I.P.E.T. N° 48 Presidente Roca","direccion":"Av. Gobernador Roca s/n","lat":-31.4332399,"lng":-64.1774227,"geo_tipo":"POI","geo_match":"IPET 48 Presidente Roca, Parque Sarmiento","dist_m":3540,"min_pie":47,"revisar":false},{"id":"S15","nombre":"I.P.E.T. N° 66 Dr. José A. Balseiro","direccion":"Hipólito Irigoyen 258","lat":-31.42415,"lng":-64.187025,"geo_tipo":"PointAddress","geo_match":"Av. Hipólito Yrigoyen 258, Nueva Córdoba","dist_m":3950,"min_pie":53,"revisar":false},{"id":"S16","nombre":"Esc. Normal Superior Alejandro Carbó","direccion":"Colón 951","lat":-31.409783,"lng":-64.195934,"geo_tipo":"PointAddress","geo_match":"Av. Colón 951, Alberdi","dist_m":4838,"min_pie":65,"revisar":false},{"id":"S17","nombre":"I.P.E.M. N° 268 Dean Funes","direccion":"Perú 10","lat":-31.430791,"lng":-64.190483,"geo_tipo":"PointAddress","geo_match":"Perú 10, Nueva Córdoba","dist_m":4365,"min_pie":58,"revisar":false},{"id":"S18","nombre":"Parque Sarmiento","direccion":"cerca del Monumento al Gral. Bustos","lat":-31.4318848,"lng":-64.1839033,"geo_tipo":"POI","geo_match":"Monumento al Brigadier General Bustos, Parque Sarmiento","dist_m":4192,"min_pie":56,"revisar":false},{"id":"S19","nombre":"I.P.E.M. N° 138 Jerónimo Luis de Cabrera","direccion":"Santa Rosa 650","lat":-31.409848,"lng":-64.191506,"geo_tipo":"PointAddress","geo_match":"Santa Rosa 650, Alberdi","dist_m":4526,"min_pie":61,"revisar":false},{"id":"S20","nombre":"Escuela Presidente Roque Saenz Peña","direccion":"Av. Velez Sarsfield 1002","lat":-31.426317,"lng":-64.191486,"geo_tipo":"StreetAddress","geo_match":"Av. Vélez Sársfield 1002, Centro","dist_m":4441,"min_pie":59,"revisar":true},{"id":"S21","nombre":"I.P.E.T. Nº 247 Ing Carlos Cassaffousth","direccion":"Dean Funes 1511","lat":-31.410025,"lng":-64.204569,"geo_tipo":"PointAddress","geo_match":"Deán Funes 1511, Quinta Santa Ana","dist_m":5569,"min_pie":75,"revisar":false}],"talleres":[{"n":1,"eje":1,"sede":"S01","nombre":"40 años de Encuentros Plurinacionales. Actualidad del movimiento de mujeres, feminismos y transfeminismos frente a las derechas y ultraderechas."},{"n":2,"eje":1,"sede":"S02","nombre":"Yomar y los feminismos negros."},{"n":3,"eje":1,"sede":"S02","nombre":"Feminismos Comunitarios, Territoriales, Indígenas y Campesinos."},{"n":4,"eje":1,"sede":"S02","nombre":"Activismos marrones y anti-racismos."},{"n":5,"eje":1,"sede":"S03","nombre":"Activismos de identidades lésbicas."},{"n":6,"eje":1,"sede":"S03","nombre":"Activismos travesti, trans, transgénero."},{"n":7,"eje":1,"sede":"S03","nombre":"Activismos bisexuales."},{"n":8,"eje":1,"sede":"S04","nombre":"Activismos gordes."},{"n":9,"eje":1,"sede":"S05","nombre":"Activismos disca en primera persona (solo para discas)."},{"n":10,"eje":1,"sede":"S06","nombre":"Activismos Anarco trans-feministas."},{"n":11,"eje":1,"sede":"S06","nombre":"Eco-transfeminismos."},{"n":12,"eje":1,"sede":"S06","nombre":"Activismos antiespecistas."},{"n":13,"eje":1,"sede":"S07","nombre":"Feminismos y partidos políticos."},{"n":14,"eje":1,"sede":"S07","nombre":"Iglesias y Estado Asunto Separado."},{"n":15,"eje":2,"sede":"S08","nombre":"Soberanía de los territorios y de la tierra."},{"n":16,"eje":2,"sede":"S08","nombre":"Soberanía Nacional y Plurinacional."},{"n":17,"eje":2,"sede":"S08","nombre":"Soberanía de los bienes comunes frente a la avanzada extractivista."},{"n":18,"eje":2,"sede":"S09","nombre":"Soberanía económica y deuda externa."},{"n":19,"eje":2,"sede":"S09","nombre":"Soberanía económica y endeudamiento de los sectores populares."},{"n":20,"eje":2,"sede":"S09","nombre":"Soberanía Alimentaria."},{"n":21,"eje":2,"sede":"S09","nombre":"Tecnopolítica, soberanía digital y ciberactivismos."},{"n":22,"eje":3,"sede":"S10","nombre":"Feminidades travestis, trans, transexuales y transgéneros."},{"n":23,"eje":3,"sede":"S03","nombre":"Lesbianismos."},{"n":24,"eje":3,"sede":"S10","nombre":"Bisexualidades."},{"n":25,"eje":3,"sede":"S10","nombre":"Identidades No-binarias."},{"n":26,"eje":3,"sede":"S10","nombre":"Pansexualidades y polisexualidades."},{"n":27,"eje":3,"sede":"S10","nombre":"Asexualidades y demisexualidades."},{"n":28,"eje":3,"sede":"S10","nombre":"Masculinidades Trans."},{"n":29,"eje":3,"sede":"S10","nombre":"Intersexualidades."},{"n":30,"eje":3,"sede":"S03","nombre":"Sexualidades, vínculos, cuerpos y afectos. Políticas de los cuerpos."},{"n":31,"eje":4,"sede":"S11","nombre":"Niñeces (sin adultxs)."},{"n":32,"eje":4,"sede":"S11","nombre":"Adolescencias y juventudes (sin adultxs)."},{"n":33,"eje":4,"sede":"S11","nombre":"Adultes y activistas que acompañan niñeces, adolescentes y juventudes."},{"n":34,"eje":4,"sede":"S12","nombre":"Vejeces como sujetes politiques."},{"n":35,"eje":5,"sede":"S13","nombre":"Violencias heterocispatriarcales y antifeminismo organizado."},{"n":36,"eje":5,"sede":"S13","nombre":"Femicidio, feminicidio y suicidio femicida."},{"n":37,"eje":5,"sede":"S14","nombre":"Travesticidios, lesbicidios y transhomicidios."},{"n":38,"eje":5,"sede":"S14","nombre":"Explotación sexual y laboral. Redes de trata."},{"n":39,"eje":5,"sede":"S15","nombre":"Madres protectoras, abuso sexual hacia niñeces y adolescencias, sobrevivientes."},{"n":40,"eje":5,"sede":"S14","nombre":"Violencias heterocispatriarcales en ámbitos institucionales."},{"n":41,"eje":5,"sede":"S14","nombre":"Violencia Gineco obstétrica."},{"n":42,"eje":5,"sede":"S14","nombre":"Violencia digital, redes sociales. Medios de comunicación y grooming."},{"n":43,"eje":5,"sede":"S14","nombre":"Violencia hacia personas mayores."},{"n":44,"eje":6,"sede":"S11","nombre":"Familiares de víctimas de gatillo fácil, activistas y organizaciones contra la represión estatal."},{"n":45,"eje":6,"sede":"S11","nombre":"Desapariciones forzadas y desaparecides en democracia. Estrategias colectivas de organización. Familiares y organizaciones por la verdad y la justicia."},{"n":46,"eje":6,"sede":"S11","nombre":"Torturas y asesinatos en contextos de encierro. Redes de acompañamiento y apoyo entre familiares y personas allegadas."},{"n":47,"eje":6,"sede":"S11","nombre":"Personas privadas de la libertad: cárceles y sistemas penitenciarios."},{"n":48,"eje":6,"sede":"S11","nombre":"Represión a la protesta social, autocuidados y defensas colectivas en la calle."},{"n":49,"eje":7,"sede":"S16","nombre":"Acceso a la justicia, jurisprudencia y criminalización."},{"n":50,"eje":7,"sede":"S16","nombre":"Salud intercultural, medicina ancestral, Buen vivir/Buen morir. Espiritualidad Afro."},{"n":51,"eje":7,"sede":"S16","nombre":"Aprendizaje plurinacional, afrocentrada antirracista."},{"n":52,"eje":7,"sede":"S16","nombre":"Extractivismo y apropiación cultural."},{"n":53,"eje":7,"sede":"S16","nombre":"Defensa, resguardo y protección del territorio."},{"n":54,"eje":7,"sede":"S16","nombre":"Violencias racistas simbólicas culturales e institucionales."},{"n":55,"eje":7,"sede":"S16","nombre":"Identidades Afro. Crianzas. Diásporas."},{"n":56,"eje":7,"sede":"S16","nombre":"Participación política Indígena y Afro en política."},{"n":57,"eje":8,"sede":"S11","nombre":"Derechos Humanos, militancia, participación política y resistencia a 50 años del golpe."},{"n":58,"eje":8,"sede":"S11","nombre":"Violencia sexual y violencia contra las disidencias sexuales en la dictadura."},{"n":59,"eje":8,"sede":"S11","nombre":"Criminalización, persecución, presas políticas y preses polítiques en democracia."},{"n":60,"eje":8,"sede":"S11","nombre":"Hacia una reforma judicial transfeminista."},{"n":61,"eje":8,"sede":"S11","nombre":"Migrantes y refugiades."},{"n":62,"eje":9,"sede":"S16","nombre":"Trabajadoras de casas particulares."},{"n":63,"eje":9,"sede":"S15","nombre":"Trabajos de cuidado."},{"n":64,"eje":9,"sede":"S15","nombre":"Trabajos de cuidados comunitarios."},{"n":65,"eje":9,"sede":"S15","nombre":"Maternar en tiempos de avance de las ultraderechas."},{"n":66,"eje":9,"sede":"S15","nombre":"Familias diversas."},{"n":67,"eje":10,"sede":"S17","nombre":"Acceso a la salud: La salud como derecho humano y desmantelamiento de la salud pública.","sub":"Salud"},{"n":68,"eje":10,"sede":"S17","nombre":"Salud mental desde una mirada integral, social y comunitaria.","sub":"Salud"},{"n":69,"eje":10,"sede":"S17","nombre":"VIH salud integral y activismo.","sub":"Salud"},{"n":70,"eje":10,"sede":"S17","nombre":"Derechos sexuales y (no) reproductivos.","sub":"Salud"},{"n":71,"eje":10,"sede":"S12","nombre":"La nueva longevidad.","sub":"Salud"},{"n":72,"eje":10,"sede":"S17","nombre":"Cannabis y salud integral.","sub":"Salud"},{"n":73,"eje":10,"sede":"S17","nombre":"Sistema de salud y terapias alternativas.","sub":"Salud"},{"n":74,"eje":10,"sede":"S17","nombre":"¿Cómo habitar las aulas? Desafíos de la educación inicial, primaria y secundaria.","sub":"Educación"},{"n":75,"eje":10,"sede":"S17","nombre":"Derecho a la educación universitaria pública, gratuita, laica, de calidad y feminista.","sub":"Educación"},{"n":76,"eje":10,"sede":"S17","nombre":"Educación popular.","sub":"Educación"},{"n":77,"eje":10,"sede":"S16","nombre":"Condiciones de trabajo y Reforma laboral.","sub":"Trabajo"},{"n":78,"eje":10,"sede":"S05","nombre":"Estrategias para el ejercicio del derecho al empleo con apoyos en situaciones de desigualdad.","sub":"Trabajo"},{"n":79,"eje":10,"sede":"S16","nombre":"Organización sindical.","sub":"Trabajo"},{"n":80,"eje":10,"sede":"S16","nombre":"Las trabajadoras y les trabajadores sexuales.","sub":"Trabajo"},{"n":81,"eje":10,"sede":"S16","nombre":"Trabajo sexual travesti-trans.","sub":"Trabajo"},{"n":82,"eje":10,"sede":"S11","nombre":"Derechos y reivindicaciones en el deporte.","sub":"Deporte"},{"n":83,"eje":10,"sede":"S18","nombre":"Fútbol y feminismos.","sub":"Deporte"},{"n":84,"eje":10,"sede":"S05","nombre":"Arte, interculturalidad y prácticas comunitarias: desafíos y reivindicaciones.","sub":"Cultura"},{"n":85,"eje":10,"sede":"S05","nombre":"Laboratorio corporal: exploración y experiencias integrales.","sub":"Cultura"},{"n":86,"eje":10,"sede":"S17","nombre":"Por una ciencia y técnica feminista.","sub":"Ciencia y técnica"},{"n":87,"eje":11,"sede":"S19","nombre":"20 años de la Ley de Educación Sexual Integral (ESI)."},{"n":88,"eje":11,"sede":"S19","nombre":"Estrategias para garantizar la ESI."},{"n":89,"eje":11,"sede":"S19","nombre":"Redes de acompañamiento para el acceso al aborto seguro, legal y gratuito."},{"n":90,"eje":11,"sede":"S19","nombre":"Estrategias para la accesibilidad y defensa del aborto legal, seguro y gratuito."},{"n":91,"eje":12,"sede":"S20","nombre":"Antifascismos."},{"n":92,"eje":12,"sede":"S20","nombre":"Guerras y crisis mundial actual."},{"n":93,"eje":12,"sede":"S20","nombre":"Palestina como causa transfeminista."},{"n":94,"eje":12,"sede":"S20","nombre":"Abya Yala. Antiiperialismo, solidaridad e integración latinoamericana."},{"n":95,"eje":12,"sede":"S20","nombre":"Imaginación de nuevos futuros."},{"n":96,"eje":13,"sede":"S21","nombre":"Derecho a la vivienda, derecho a la ciudad, producción social del hábitat."},{"n":97,"eje":13,"sede":"S21","nombre":"Economía social, solidaria y popular."},{"n":98,"eje":13,"sede":"S21","nombre":"Organización barrial, grupos de mujeres, feminismos populares."},{"n":99,"eje":13,"sede":"S21","nombre":"Emergencia alimentaria."}],"escuela":{"nombre":"Escuela Esteban Echeverría","direccion":"López y Planes 2378, Córdoba","lat":-31.4208,"lng":-64.153082},"pena":{"nombre":"Peña / Baila La Chola","direccion":"Av. Concepción Arenal y Av. Rogelio Nores Martínez","lat":-31.43277,"lng":-64.183445,"dist_m":4189,"min_pie":56}};
+const ejes = Object.fromEntries(DATA.ejes.map(e=>[e.id,e]));
+const sedes = Object.fromEntries(DATA.sedes.map(s=>[s.id,s]));
+const talleres = DATA.talleres.map(t=>({...t, s:sedes[t.sede], e:ejes[t.eje]}));
+const APPROX = new Set(["S18","S20"]); // POI de referencia o número interpolado
+const SUBS = ["Salud","Educación","Trabajo","Deporte","Cultura","Ciencia y técnica"];
+const ESC = DATA.escuela, PENA = DATA.pena;
+const ESC_TXT = "Escuela Esteban Echeverría, López y Planes 2378, Córdoba, Argentina";
+
+const norm = s => s.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
+const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const kmTxt = m => m<1000 ? (Math.round(m/10)*10)+" m" : (m/1000).toLocaleString("es-AR",{minimumFractionDigits:1,maximumFractionDigits:1})+" km";
+const minTxt = n => n<60 ? n+" min" : Math.floor(n/60)+" h "+String(n%60).padStart(2,"0")+" min";
+const ll = p => [p.lat, p.lng];
+const pageUrl = () => location.origin + location.pathname;
+const placeUrl = p => "https://www.google.com/maps/search/?api=1&query="+p.lat+","+p.lng;
+talleres.forEach(t=>{ t.hay = norm([t.n, t.nombre, "eje "+t.eje, t.e.nombre, t.sub||"", t.s.nombre, t.s.direccion].join(" | ")); });
+function hav(a,b){ const R=6371000, r=Math.PI/180, dLa=(b.lat-a.lat)*r, dLo=(b.lng-a.lng)*r;
+  const x=Math.sin(dLa/2)**2+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dLo/2)**2; return 2*R*Math.asin(Math.sqrt(x)); }
+function track(name, params){ try{ if(typeof gtag==="function") gtag("event", name, params||{}); }catch(e){} }
+const $ = id => document.getElementById(id);
+
+// ---- puntos de destino: 21 sedes + peña + escuela
+const POINTS = Object.fromEntries([...DATA.sedes.map(s=>[s.id,s]), ["PENA",PENA], ["ESC",ESC]]);
+const PIDS = Object.keys(POINTS);
+
+// ---- origen de las distancias
+// mode "gps": ubicación del celular en tiempo real · mode "escuela": Escuela Esteban Echeverría
+const DETOUR = 1.25, WALK = 1.25; // factor calle/línea recta medido en las 21 sedes (1,11–1,34) · paso ~4,5 km/h
+let mode = "gps";
+try{ const m=localStorage.getItem("enc39origin"); if(m==="escuela") mode="escuela"; }catch(e){}
+if(location.hash==="#escuela") mode="escuela";
+let geo = {status:"idle", pos:null, acc:null}; // idle | asking | ok | denied | unavailable
+let routed = null; // {origin:{lat,lng}, at, d:{id:[m,s]}}
+let lastRenderPos = null, watchId = null, routeBusy = false;
+
+function dist(id){
+  if(mode==="escuela"){
+    if(id==="ESC") return null;
+    const p=POINTS[id]; return {m:p.dist_m, min:p.min_pie, exact:true};
+  }
+  if(geo.status!=="ok" || !geo.pos) return null;
+  if(routed && hav(routed.origin, geo.pos) < 150 && routed.d[id]){
+    const [m,s]=routed.d[id]; return {m, min:Math.max(1,Math.round(s/60)), exact:true};
+  }
+  const m = hav(geo.pos, POINTS[id])*DETOUR; return {m, min:Math.max(1,Math.round(m/WALK/60)), exact:false};
+}
+const fromTxt = () => mode==="escuela" ? "desde la escuela" : "de vos";
+function distHTML(id, big){
+  const d=dist(id);
+  if(!d){
+    if(mode==="gps") return `<div class="dist off"><button class="linkbtn" data-ask-geo>📍 Activá tu ubicación para ver la distancia</button></div>`;
+    return "";
+  }
+  if(mode==="gps" && d.m<120) return `<div class="dist${big?" big":""}"><span>📍 Estás muy cerca</span></div>`;
+  const ap = d.exact ? "" : "≈ ";
+  return `<div class="dist${big?" big":""}"><span>📍 ${ap}${kmTxt(d.m)} ${fromTxt()}</span><span>🚶 ${ap}${minTxt(d.min)} caminando</span></div>`;
+}
+function dirUrl(p){
+  const base="https://www.google.com/maps/dir/?api=1&travelmode=walking&destination="+p.lat+","+p.lng;
+  return mode==="escuela" ? base+"&origin="+encodeURIComponent(ESC_TXT) : base; // sin origen: Google Maps usa la ubicación del celu
+}
+const dirLabel = () => mode==="escuela" ? "Cómo llegar desde la escuela" : "Cómo llegar";
+
+// ---- geolocalización
+function startGeo(fromGesture){
+  if(!("geolocation" in navigator)){ geo.status="unavailable"; updateOrigin(); return; }
+  if(watchId!==null) return;
+  geo.status = geo.pos ? "ok" : "asking"; updateOrigin();
+  watchId = navigator.geolocation.watchPosition(onPos, onGeoErr, {enableHighAccuracy:true, maximumAge:15000, timeout:20000});
+  if(fromGesture) track("ubicacion_pedida");
+}
+function stopGeo(){ if(watchId!==null){ navigator.geolocation.clearWatch(watchId); watchId=null; } }
+function onPos(p){
+  const first = geo.status!=="ok";
+  geo = {status:"ok", pos:{lat:p.coords.latitude, lng:p.coords.longitude}, acc:p.coords.accuracy};
+  if(first) track("ubicacion",{estado:"concedida", precision_m:Math.round(geo.acc)});
+  updateUserMarker();
+  maybeRoute();
+  if(first || !lastRenderPos || hav(lastRenderPos, geo.pos) > 80){ lastRenderPos = geo.pos; updateOrigin(); }
+}
+function onGeoErr(err){
+  if(geo.status==="ok") return; // un error suelto con una posición ya conocida no cambia nada
+  stopGeo();
+  geo.status = err && err.code===1 ? "denied" : "unavailable";
+  track("ubicacion",{estado: geo.status==="denied"?"denegada":"no_disponible"});
+  updateOrigin();
+}
+// Recorrido peatonal real (OSRM · OpenStreetMap) desde la posición actual a los 23 puntos, con un pedido cada tanto
+function maybeRoute(){
+  if(mode!=="gps" || !geo.pos || routeBusy) return;
+  if(hav(geo.pos, ESC) > 25000) return; // fuera de Córdoba: solo estimación
+  if(routed && hav(routed.origin, geo.pos) < 150) return;
+  if(routed && Date.now()-routed.at < 60000) return;
+  routeBusy = true;
+  const o = {lat:+geo.pos.lat.toFixed(4), lng:+geo.pos.lng.toFixed(4)};
+  const coords = [o, ...PIDS.map(id=>POINTS[id])].map(p=>p.lng.toFixed(5)+","+p.lat.toFixed(5)).join(";");
+  const ctl = new AbortController(); const to = setTimeout(()=>ctl.abort(), 8000);
+  fetch("https://routing.openstreetmap.de/routed-foot/table/v1/foot/"+coords+"?sources=0&annotations=distance,duration", {signal:ctl.signal})
+    .then(r=>r.ok?r.json():Promise.reject(r.status))
+    .then(j=>{
+      if(j.code!=="Ok") throw j.code;
+      const d={}; PIDS.forEach((id,i)=>{ const m=j.distances[0][i+1], s=j.durations[0][i+1]; if(m!=null && s!=null) d[id]=[m,s]; });
+      routed = {origin:o, at:Date.now(), d}; render();
+    })
+    .catch(()=>{ routed = routed ? {...routed, at:Date.now()} : {origin:{lat:0,lng:0}, at:Date.now(), d:{}}; })
+    .finally(()=>{ clearTimeout(to); routeBusy=false; });
+}
+function setMode(m, reason){
+  if(m===mode) return; mode=m;
+  try{ localStorage.setItem("enc39origin", m); }catch(e){}
+  track("cambiar_origen",{origen:m, motivo:reason||"menu"});
+  if(m==="gps") startGeo(true);
+  updateOrigin();
+}
+
+// ---- chip y aviso de origen
+function originChip(){
+  if(mode==="escuela") return "🏠 Desde la escuela";
+  return {ok:"📍 Desde vos", asking:"📍 Buscando…", denied:"📍 Ubicación bloqueada", unavailable:"📍 Sin ubicación", idle:"📍 Activar ubicación"}[geo.status];
+}
+function banner(){
+  if(mode==="escuela") return `<div class="note">Distancias calculadas desde la <b>Escuela Esteban Echeverría</b>, la base de Baila La Chola. <button class="linkbtn" data-mode="gps">Usar mi ubicación</button></div>`;
+  if(geo.status==="idle") return `<div class="note strong"><b>¿Qué taller tenés más cerca?</b> Activá la ubicación y ordenamos los 99 talleres según dónde estás.<div class="acts"><button class="btn primary" data-ask-geo>📍 Usar mi ubicación</button></div></div>`;
+  if(geo.status==="asking") return `<div class="note">Buscando tu ubicación… Si el celu te pregunta, tocá <b>Permitir</b>.</div>`;
+  if(geo.status==="denied") return `<div class="note strong"><b>La ubicación está bloqueada para esta página.</b> Activala desde el candado 🔒 de la barra del navegador (o en Ajustes → Privacidad → Localización) y recargá. Mientras tanto podés ver las distancias desde la escuela de la Chola.<div class="acts"><button class="btn" data-mode="escuela">🏠 Ver desde la escuela</button></div></div>`;
+  if(geo.status==="unavailable") return `<div class="note strong"><b>No pudimos obtener tu ubicación.</b> Revisá que el GPS esté prendido y probá de nuevo.<div class="acts"><button class="btn primary" data-ask-geo>📍 Reintentar</button><button class="btn" data-mode="escuela">🏠 Ver desde la escuela</button></div></div>`;
+  const far = hav(geo.pos, ESC) > 30000;
+  if(far) return `<div class="note">Estás a ${kmTxt(hav(geo.pos,ESC))} de Córdoba: las distancias son en línea recta aproximada. Cuando estés en la ciudad se calculan caminando.</div>`;
+  if(geo.acc > 500) return `<div class="note">Tu ubicación es poco precisa (±${kmTxt(geo.acc)}). Las distancias pueden variar.</div>`;
+  return "";
+}
+function updateOrigin(){
+  if(typeof setUserProps==="function") setUserProps();
+  $("originBtn").textContent = originChip();
+  $("originBtn").classList.toggle("warn", mode==="gps" && (geo.status==="denied"||geo.status==="unavailable"));
+  $("oGps").setAttribute("aria-checked", mode==="gps"); $("oEsc").setAttribute("aria-checked", mode==="escuela");
+  const cerca = $("sort").querySelector('option[value="cerca"]');
+  cerca.textContent = mode==="escuela" ? "Más cerca de la escuela" : "Más cerca mío";
+  if(map){ drawRings(); updateUserMarker(); }
+  render();
+}
+
+// ---- state y filtros
+let st = {q:"", eje:"", sede:"", sub:"", sort:"cerca", view:"list", sel:null};
+try{ const v=localStorage.getItem("enc39view"); if(v==="map") st.view="map"; }catch(e){}
+const isActive = () => !!(st.q||st.eje||st.sede||st.sub);
+function filtered(){
+  const toks = norm(st.q).trim().replace(/^#/,"").split(/\s+/).filter(Boolean);
+  return talleres.filter(t=>{
+    if(st.eje && t.eje!=+st.eje) return false;
+    if(st.sede && t.sede!==st.sede) return false;
+    if(st.sub && t.sub!==st.sub) return false;
+    if(!toks.length) return true;
+    if(toks.length===1 && /^\d+$/.test(toks[0])) return t.n===+toks[0];
+    return toks.every(k=>t.hay.includes(k));
+  });
+}
+function hl(text){
+  const toks = norm(st.q).trim().replace(/^#/,"").split(/\s+/).filter(k=>k.length>1 && !/^\d+$/.test(k));
+  if(!toks.length) return esc(text);
+  const n = norm(text); let marks=[];
+  toks.forEach(k=>{let i=0; while((i=n.indexOf(k,i))>-1){marks.push([i,i+k.length]); i+=k.length;}});
+  marks.sort((a,b)=>a[0]-b[0]); let out="",p=0;
+  marks.forEach(([a,b])=>{ if(a<p) return; out+=esc(text.slice(p,a))+"<mark>"+esc(text.slice(a,b))+"</mark>"; p=b; });
+  return out+esc(text.slice(p));
+}
+
+// ---- compartir por WhatsApp (sin distancias: cada quien la ve desde su celu)
+const WA_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21c5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2Zm5.8 14.03c-.24.68-1.42 1.3-1.96 1.35-.5.05-1.13.07-1.82-.11-.42-.13-.96-.31-1.65-.61-2.9-1.25-4.79-4.17-4.94-4.36-.14-.19-1.18-1.57-1.18-3s.75-2.13 1.02-2.42c.27-.29.58-.36.78-.36h.56c.18 0 .42-.07.66.5.24.58.82 2 .89 2.15.07.14.12.31.02.5-.1.19-.14.31-.29.48-.14.17-.3.38-.43.51-.14.14-.29.3-.13.59.17.29.74 1.22 1.59 1.98 1.09.97 2.01 1.27 2.3 1.42.29.14.46.12.63-.07.17-.19.72-.84.91-1.13.19-.29.38-.24.65-.14.27.1 1.69.8 1.98.94.29.14.48.22.55.34.07.12.07.7-.17 1.38Z"/></svg>';
+function waText(t){
+  const s=t.s;
+  return `*#${t.n} — ${t.nombre}*\nEje ${t.eje}: ${t.e.nombre}\n📍 ${s.nombre} · ${s.direccion}\n\nCómo llegar:\nhttps://www.google.com/maps/dir/?api=1&travelmode=walking&destination=${s.lat},${s.lng}\n\nTodos los talleres: ${pageUrl()}?utm_source=whatsapp&utm_medium=compartir&utm_campaign=taller_${t.n}#t${t.n}`;
+}
+const waUrl = t => "https://wa.me/?text="+encodeURIComponent(waText(t));
+
+// ---- lista
+const listEl = $("listView");
+function penaCard(){
+  return `<div class="pena"><span class="ico">🥁</span><b>Peña · Baila La Chola</b><p>Domingo 11 de octubre, desde las 21 h · ${esc(PENA.direccion)}</p>
+  <div class="pdist">${distHTML("PENA")}</div>
+  <div class="acts"><button class="btn drum" data-map="PENA">Ver en mapa</button><a class="btn drum" href="${dirUrl(PENA)}" target="_blank" rel="noopener" data-ev="como_llegar" data-sede="PENA">${dirLabel()}</a></div></div>`;
+}
+function card(t){
+  const s=t.s;
+  return `<article class="card" id="t${t.n}">
+    <h2><span class="num">#${t.n}</span> ${hl(t.nombre)}</h2>
+    <div class="eje"><b>Eje ${t.eje}:</b> ${hl(t.e.nombre)}${t.sub?`<span class="tag">${hl(t.sub)}</span>`:""}</div>
+    <div class="sede"><strong>${hl(s.nombre)}</strong><span>${hl(s.direccion)}</span></div>
+    ${distHTML(s.id)}${APPROX.has(s.id)?`<div class="approx">Ubicación de la sede aproximada: confirmá en el lugar</div>`:""}
+    <div class="acts"><button class="btn" data-map="${s.id}">Ver en mapa</button><a class="btn primary" href="${dirUrl(s)}" target="_blank" rel="noopener" data-ev="como_llegar" data-sede="${s.id}" data-t="${t.n}">${dirLabel()}</a><a class="btn wa" data-ev="share" data-sede="${s.id}" data-t="${t.n}" href="${waUrl(t)}" target="_blank" rel="noopener" aria-label="Compartir el taller ${t.n} por WhatsApp">${WA_SVG}Compartir</a></div>
+  </article>`;
+}
+function renderList(rows){
+  let html = banner() + ((!isActive()) ? penaCard() : "");
+  const canNear = !!dist("S01");
+  const sort = (st.sort==="cerca" && !canNear) ? "num" : st.sort;
+  if(!rows.length){ html += `<div class="empty">No hay talleres que coincidan. Probá con otra palabra o quitá filtros.</div>`; }
+  else if(sort==="cerca"){
+    const D = Object.fromEntries(DATA.sedes.map(s=>[s.id, dist(s.id)]));
+    rows.sort((a,b)=>D[a.sede].m-D[b.sede].m || a.n-b.n);
+    let last=null;
+    rows.forEach(t=>{ if(t.sede!==last){ last=t.sede; const c=rows.filter(r=>r.sede===t.sede).length;
+      html += `<div class="group"><span>${esc(t.s.nombre)} · ${c} ${c===1?"taller":"talleres"}</span><span>${D[t.sede].exact?"":"≈ "}${kmTxt(D[t.sede].m)}</span></div>`; }
+      html += card(t); });
+  } else if(sort==="eje"){
+    rows.sort((a,b)=>a.eje-b.eje || a.n-b.n); let last=null;
+    rows.forEach(t=>{ if(t.eje!==last){ last=t.eje; html += `<div class="group"><span>Eje ${t.eje}</span></div>`; } html += card(t); });
+  } else { rows.sort((a,b)=>a.n-b.n); rows.forEach(t=>html+=card(t)); }
+  html += `<p class="foot">Distancias: recorrido caminando calculado con OpenStreetMap desde donde estás (o desde la escuela, si elegís esa opción). Cuando dice ≈ es una estimación mientras llega el cálculo exacto. Tu ubicación se usa solo para esto: no se guarda en esta web y se envía de forma anónima, redondeada, al servicio de rutas de OpenStreetMap.</p>
+  <footer class="credit"><span>Hecho con 💜 por</span><a href="https://www.instagram.com/bailalachola/" target="_blank" rel="noopener" data-ev="click_instagram">@bailalachola</a></footer>`;
+  const y = listEl.scrollTop; listEl.innerHTML = html; listEl.scrollTop = y;
+}
+
+// ---- mapa (Leaflet + OpenStreetMap)
+const mapEl=$("mapView"), sheet=$("sheet");
+let map=null, layer=null, ringLayer=null, userLayer=null;
+const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function initMap(){
+  if(map) return;
+  map = L.map("leafletMap",{zoomControl:false, attributionControl:true});
+  L.control.zoom({position:"topright"}).addTo(map);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,subdomains:"abc",
+    attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'}).addTo(map);
+  ringLayer = L.layerGroup().addTo(map); layer = L.layerGroup().addTo(map); userLayer = L.layerGroup().addTo(map);
+  drawRings(); updateUserMarker(); fitAll();
+}
+function originPoint(){ return mode==="escuela" ? ESC : (geo.status==="ok" ? geo.pos : null); }
+function drawRings(){
+  if(!ringLayer) return; ringLayer.clearLayers();
+  const o = originPoint(); if(!o || hav(o,ESC)>25000) return;
+  for(let k=1;k<=6;k++) L.circle(ll(o),{radius:k*1000,color:cssVar("--violet")||"#5b2a86",weight:1.5,opacity:.4,fill:false,dashArray:k%2?"4 6":null,interactive:false}).addTo(ringLayer)
+    .bindTooltip(k+" km",{permanent:true,direction:"top",className:"ringlbl"}).openTooltip(L.latLng(o.lat+k*1000/111320,o.lng));
+  ringLayer._origin = o;
+}
+let userMk=null, userAcc=null;
+function updateUserMarker(){
+  if(!userLayer) return;
+  if(geo.status!=="ok"){ userLayer.clearLayers(); userMk=userAcc=null; return; }
+  if(!userMk){
+    userAcc = L.circle(ll(geo.pos),{radius:geo.acc,color:cssVar("--me")||"#1a73e8",weight:1,opacity:.5,fillOpacity:.12,interactive:false}).addTo(userLayer);
+    userMk = L.marker(ll(geo.pos),{icon:L.divIcon({className:"me",iconSize:[18,18],iconAnchor:[9,9]}),zIndexOffset:2000,interactive:false,keyboard:false}).addTo(userLayer);
+  } else { userMk.setLatLng(ll(geo.pos)); userAcc.setLatLng(ll(geo.pos)).setRadius(geo.acc); }
+  if(mode==="gps" && ringLayer && (!ringLayer._origin || hav(ringLayer._origin, geo.pos)>80)) drawRings();
+}
+function fitAll(){
+  const pts=[...DATA.sedes.map(ll), ll(PENA), ll(ESC)];
+  if(geo.status==="ok" && hav(geo.pos,ESC)<15000) pts.push(ll(geo.pos));
+  map.fitBounds(L.latLngBounds(pts),{paddingTopLeft:[20,70],paddingBottomRight:[20, sheet.hidden?20:mapEl.clientHeight*0.5]});
+}
+function icon(cls, html, size){ return L.divIcon({className:"lf "+cls, html, iconSize:[size,size], iconAnchor:[size/2,size/2]}); }
+function renderMap(){
+  if(!map || mapEl.hidden) return;
+  const rows=filtered(), bySede={}; rows.forEach(t=>bySede[t.sede]=(bySede[t.sede]||0)+1);
+  const active=isActive();
+  layer.clearLayers();
+  DATA.sedes.forEach(s=>{
+    const n = active ? (bySede[s.id]||0) : DATA.talleres.filter(t=>t.sede===s.id).length;
+    const dim = active && !n, sel = st.sel===s.id;
+    const m = L.marker(ll(s),{icon:icon("sede"+(dim?" dim":"")+(sel?" sel":""), n||"·", dim?24:34), zIndexOffset: sel?1000:(dim?-100:0), title:s.nombre, keyboard:true})
+      .on("click",()=>openSheet(s.id)).addTo(layer);
+    if(sel) m.bindTooltip(s.nombre,{permanent:true,direction:"bottom",offset:[0,16],className:"mlbl"});
+  });
+  L.marker(ll(PENA),{icon:icon("drumk","🥁",40),zIndexOffset:500,title:"Peña / Baila La Chola"}).on("click",()=>openSheet("PENA"))
+    .bindTooltip("Peña",{permanent:true,direction:"bottom",offset:[0,18],className:"mlbl"}).addTo(layer);
+  L.marker(ll(ESC),{icon:icon("home","🏠",40),zIndexOffset:800,title:"Escuela Esteban Echeverría · Baila La Chola"}).on("click",()=>openSheet("ESC"))
+    .bindTooltip("Escuela · Baila La Chola",{permanent:true,direction:"bottom",offset:[0,18],className:"mlbl"}).addTo(layer);
+}
+function openSheet(id){
+  if(st.sel!==id) track("abrir_sede",{sede_id:id, sede:sedeName(id), distancia:distBucket(id), origen:mode});
+  st.sel=id; let html;
+  const close = `<button class="x" aria-label="Cerrar">×</button>`;
+  if(id==="ESC"){ html=`<div class="grab"><h3>🏠 Escuela Esteban Echeverría</h3>${close}</div><div class="body"><div class="addr">López y Planes 2378, Córdoba</div><p style="margin:0">La base de Baila La Chola durante el Encuentro.</p>${mode==="gps"?distHTML("ESC",true):""}<div class="acts">${mode==="gps"?`<a class="btn primary" href="${dirUrl(ESC)}" target="_blank" rel="noopener" data-ev="como_llegar" data-sede="ESC">Cómo llegar</a>`:""}<a class="btn" href="${placeUrl(ESC)}" target="_blank" rel="noopener">Ver en Google Maps</a></div></div>`; }
+  else if(id==="PENA"){ html=`<div class="grab"><h3>🥁 Peña / Baila La Chola</h3>${close}</div><div class="body"><div class="addr">${esc(PENA.direccion)}</div><p style="margin:0"><b>Domingo 11 de octubre, desde las 21 h.</b></p>${distHTML("PENA",true)}<div class="acts"><a class="btn primary" href="${dirUrl(PENA)}" target="_blank" rel="noopener" data-ev="como_llegar" data-sede="PENA">${dirLabel()}</a></div></div>`; }
+  else { const s=sedes[id], all=talleres.filter(t=>t.sede===id).sort((a,b)=>a.n-b.n), ok=new Set(filtered().map(t=>t.n)), active=isActive();
+    html=`<div class="grab"><h3>${esc(s.nombre)}</h3>${close}</div><div class="body">
+      <div class="addr">${esc(s.direccion)}</div>
+      ${distHTML(id,true)}
+      ${APPROX.has(id)?`<div class="approx">Ubicación aproximada: confirmá en el lugar</div>`:""}
+      <div class="acts"><a class="btn primary" href="${dirUrl(s)}" target="_blank" rel="noopener" data-ev="como_llegar" data-sede="${s.id}">${dirLabel()}</a></div>
+      <div class="n">${all.length} ${all.length===1?"taller":"talleres"} en esta sede</div>
+      <ul>${all.map(t=>`<li class="${active&&!ok.has(t.n)?"off":""}"><span class="num">#${t.n}</span> — ${esc(t.nombre)}${t.sub?`<span class="tag">${t.sub}</span>`:""}<a class="wa-mini" data-ev="share" data-sede="${t.sede}" data-t="${t.n}" href="${waUrl(t)}" target="_blank" rel="noopener" aria-label="Compartir el taller ${t.n} por WhatsApp">${WA_SVG}</a></li>`).join("")}</ul></div>`; }
+  const y = sheet.querySelector(".body")?.scrollTop || 0, same = sheet.dataset.id===id;
+  sheet.innerHTML=html; sheet.dataset.id=id; sheet.hidden=false; syncNav();
+  if(same) sheet.querySelector(".body").scrollTop=y;
+  renderMap();
+}
+function closeSheet(){ sheet.hidden=true; st.sel=null; sheet.dataset.id=""; renderMap(); syncNav(); }
+sheet.addEventListener("click",e=>{ if(e.target.closest(".x")) closeSheet(); });
+function focusOn(id){
+  const p = POINTS[id];
+  map.setView(ll(p), Math.max(map.getZoom(),16), {animate:false});
+  map.panBy([0, mapEl.clientHeight*0.25], {animate:false});
+}
+$("zfit").onclick=()=>fitAll();
+$("zme").onclick=()=>{
+  if(mode==="gps" && geo.status==="ok"){ map.setView(ll(geo.pos),16); track("centrar_en_mi"); }
+  else if(mode==="gps"){ startGeo(true); }
+  else map.setView(ll(ESC),16);
+};
+
+// ---- controles
+DATA.ejes.forEach(e=>$("fEje").insertAdjacentHTML("beforeend",`<option value="${e.id}">${e.id}. ${esc(e.nombre)}</option>`));
+[...DATA.sedes].sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")).forEach(s=>$("fSede").insertAdjacentHTML("beforeend",`<option value="${s.id}">${esc(s.nombre)}</option>`));
+SUBS.forEach(s=>$("fSub").insertAdjacentHTML("beforeend",`<option>${s}</option>`));
+function setView(v){ st.view=v; $("vList").setAttribute("aria-pressed",v==="list"); $("vMap").setAttribute("aria-pressed",v==="map");
+  listEl.hidden=v!=="list"; mapEl.hidden=v!=="map"; if(v==="map"){ initMap(); map.invalidateSize(); } $("sortWrap").hidden=v!=="list"; try{localStorage.setItem("enc39view",v)}catch(e){} render(); }
+function render(){
+  const rows=filtered(), active=isActive();
+  $("count").hidden=!active; $("count").textContent=`${rows.length} de 99`;
+  $("fbtn").classList.toggle("on",!!(st.eje||st.sede||st.sub));
+  $("fbtn").textContent = (st.eje||st.sede||st.sub) ? `Filtros (${[st.eje,st.sede,st.sub].filter(Boolean).length})` : "Filtros";
+  $("qclear").hidden=!st.q;
+  if(st.view==="list") renderList(rows); else { if(!sheet.hidden && st.sel) openSheet(st.sel); else renderMap(); }
+  syncNav();
+}
+$("q").addEventListener("input",e=>{ st.q=e.target.value; render(); });
+$("qclear").onclick=()=>{ st.q=""; $("q").value=""; render(); $("q").focus(); };
+$("fbtn").onclick=()=>{ const f=$("filters"); f.hidden=!f.hidden; $("fbtn").setAttribute("aria-expanded",!f.hidden); };
+$("fEje").onchange=e=>{ st.eje=e.target.value; if(st.eje && st.eje!=="10"){ st.sub=""; $("fSub").value=""; } render(); };
+$("fSede").onchange=e=>{ st.sede=e.target.value; render(); };
+$("fSub").onchange=e=>{ st.sub=e.target.value; if(st.sub){ st.eje="10"; $("fEje").value="10"; } render(); };
+$("sort").onchange=e=>{ st.sort=e.target.value; render(); listEl.scrollTop=0; };
+$("vList").onclick=()=>setView("list"); $("vMap").onclick=()=>setView("map");
+listEl.addEventListener("click",e=>{ const b=e.target.closest("[data-map]"); if(!b) return; const id=b.dataset.map; setView("map");
+  requestAnimationFrame(()=>{ openSheet(id); focusOn(id); }); });
+// menú de origen
+const oMenu=$("originMenu");
+$("originBtn").onclick=()=>{ oMenu.hidden=!oMenu.hidden; $("originBtn").setAttribute("aria-expanded",!oMenu.hidden); };
+document.addEventListener("click",e=>{ if(!oMenu.hidden && !e.target.closest("#originMenu,#originBtn")){ oMenu.hidden=true; $("originBtn").setAttribute("aria-expanded","false"); } });
+$("oGps").onclick=()=>{ oMenu.hidden=true; if(mode==="gps" && geo.status!=="ok") startGeo(true); setMode("gps"); };
+$("oEsc").onclick=()=>{ oMenu.hidden=true; setMode("escuela"); };
+document.addEventListener("click",e=>{
+  const g=e.target.closest("[data-ask-geo]"); if(g){ if(mode!=="gps") setMode("gps","boton"); else { stopGeo(); startGeo(true); } return; }
+  const m=e.target.closest("[data-mode]"); if(m){ setMode(m.dataset.mode,"aviso"); if(m.dataset.mode==="gps" && geo.status!=="ok"){ stopGeo(); startGeo(true); } }
+});
+
+// ---- analytics de interacción (nunca se envían coordenadas)
+const sedeName = id => id==="PENA" ? "Peña / Baila La Chola" : id==="ESC" ? "Escuela Esteban Echeverría" : (sedes[id]||{}).nombre;
+document.addEventListener("click", e=>{
+  const a=e.target.closest("[data-ev]"); if(!a) return;
+  const p={origen:mode}; if(a.dataset.sede){ p.sede_id=a.dataset.sede; p.sede=sedeName(a.dataset.sede); }
+  if(a.dataset.t){ const t=talleres[+a.dataset.t-1]; p.taller_n=+a.dataset.t; p.taller=t.nombre; p.eje=t.eje; }
+  if(a.dataset.ev==="share"){ p.method="whatsapp"; p.content_type="taller"; p.item_id=String(a.dataset.t); }
+  if(a.dataset.sede) p.distancia = distBucket(a.dataset.sede);
+  p.seccion = navState().seccion; if(a.dataset.pos) p.posicion = a.dataset.pos;
+  track(a.dataset.ev, p);
+}, true);
+let searchTimer=null;
+$("q").addEventListener("input", e=>{ clearTimeout(searchTimer); const v=e.target.value.trim();
+  if(v.length<2 && !/^\d+$/.test(v)) return;
+  searchTimer=setTimeout(()=>track("search",{search_term:v.toLowerCase(), resultados:filtered().length}),1200); });
+["fEje","fSede","fSub"].forEach(id=>$(id).addEventListener("change", e=>{ if(!e.target.value) return;
+  const tipo={fEje:"eje",fSede:"sede",fSub:"subcategoria"}[id];
+  track("filtro",{tipo, valor: id==="fSede"?sedeName(e.target.value):e.target.value}); }));
+$("sort").addEventListener("change", e=>track("orden",{valor:e.target.value}));
+$("vMap").addEventListener("click", ()=>track("ver_mapa"));
+$("vList").addEventListener("click", ()=>track("ver_lista"));
+listEl.addEventListener("click", e=>{ const b=e.target.closest("[data-map]"); if(b) track("ver_en_mapa",{sede_id:b.dataset.map, sede:sedeName(b.dataset.map)}); });
+
+// ---- título: siempre vuelve al inicio (sin búsqueda, filtros ni link de taller)
+document.querySelector(".homelink").addEventListener("click", e=>{
+  e.preventDefault(); track("ir_a_inicio");
+  setTimeout(()=>{ location.href = location.pathname; }, 120);
+});
+
+// ---- navegación con hash + páginas virtuales para Google Analytics
+// #lista · #mapa · #sede-11 · #pena · #mapa-escuela · #t65 (taller) · #eje-5 · #escuela (abre con distancias desde la escuela)
+const slug = s => norm(s).replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+const sedeNum = id => +id.slice(1);
+const BASE_PATH = location.pathname.replace(/index\.html$/,"").replace(/\/?$/,"/");
+const ENTRY = (()=>{ const q=new URLSearchParams(location.search);
+  return {src:q.get("utm_source")||"", hash:location.hash, ref:document.referrer}; })();
+function distBucket(id){
+  const d = dist(id); if(!d) return "sin_dato";
+  const k=d.m/1000; return k<1?"0-1 km":k<2?"1-2 km":k<3?"2-3 km":k<5?"3-5 km":"5+ km";
+}
+function navState(){
+  if(st.view==="map"){
+    if(st.sel==="PENA") return {h:"pena", path:"mapa/pena", title:"Mapa · Peña Baila La Chola", seccion:"pena", sede:"Peña / Baila La Chola"};
+    if(st.sel==="ESC") return {h:"mapa-escuela", path:"mapa/escuela", title:"Mapa · Escuela Esteban Echeverría", seccion:"escuela", sede:"Escuela Esteban Echeverría"};
+    if(st.sel && sedes[st.sel]){ const s=sedes[st.sel];
+      return {h:"sede-"+sedeNum(s.id), path:"mapa/sede/"+slug(s.nombre), title:"Sede · "+s.nombre, seccion:"sede", sede:s.nombre}; }
+    return {h:"mapa", path:"mapa", title:"Mapa", seccion:"mapa"};
+  }
+  const q=st.q.trim().replace(/^#/,"");
+  if(/^\d{1,2}$/.test(q) && +q>=1 && +q<=99 && !st.eje && !st.sede && !st.sub){ const t=talleres[+q-1];
+    return {h:"t"+t.n, path:"taller/"+t.n+"-"+slug(t.nombre).slice(0,60), title:"Taller #"+t.n+" · "+t.nombre, seccion:"taller", taller_n:t.n, eje:t.eje, sede:t.s.nombre}; }
+  if(st.eje && !st.q && !st.sede){ const e=ejes[+st.eje], sub=st.sub?"/"+slug(st.sub):"";
+    return {h:"eje-"+e.id+(st.sub?"-"+slug(st.sub):""), path:"eje/"+e.id+"-"+slug(e.nombre).slice(0,50)+sub, title:"Eje "+e.id+" · "+e.nombre+(st.sub?" · "+st.sub:""), seccion:"eje", eje:e.id}; }
+  return {h:"lista", path:"", title:"Lista de talleres", seccion:"lista"};
+}
+let navCur = null, navView = null, navSel = null, navPushAt = 0, navApplying = false, pvTimer = null, pvFirst = true, pvLast = "";
+function syncNav(noPush){
+  if(navApplying) return;
+  const s = navState();
+  if(s.h === navCur) return;
+  const structural = navCur!==null && (navView!==st.view || navSel!==st.sel);
+  const push = !noPush && structural && Date.now()-navPushAt > 400;
+  try{ history[push?"pushState":"replaceState"](null, "", location.pathname+location.search+"#"+s.h); }catch(e){}
+  if(push) navPushAt = Date.now();
+  navCur = s.h; navView = st.view; navSel = st.sel;
+  clearTimeout(pvTimer); pvTimer = setTimeout(()=>sendPageView(s), pvFirst ? 0 : 700);
+}
+function sendPageView(s){
+  if(s.h === pvLast) return; pvLast = s.h;
+  const p = {page_title:s.title, page_location:location.origin+BASE_PATH+s.path+(pvFirst?location.search:""), page_path:BASE_PATH+s.path,
+    seccion:s.seccion, origen:mode};
+  if(pvFirst && ENTRY.ref) p.page_referrer = ENTRY.ref;
+  ["sede","eje","taller_n"].forEach(k=>{ if(s[k]!=null) p[k]=s[k]; });
+  if(s.seccion==="sede"||s.seccion==="pena") p.distancia = distBucket(st.sel);
+  if(s.seccion==="taller") p.distancia = distBucket(talleres[s.taller_n-1].sede);
+  pvFirst = false;
+  track("page_view", p);
+}
+function setUserProps(){
+  try{ if(typeof gtag==="function") gtag("set","user_properties",{
+    origen_distancias: mode,
+    ubicacion: mode==="escuela" ? "no_usa" : geo.status,
+    llegada: ENTRY.src ? ENTRY.src : (/^#t\d/.test(ENTRY.hash) ? "link_taller" : (ENTRY.ref ? "referido" : "directo"))
+  }); }catch(e){}
+}
+function applyHash(hash, initial){
+  navApplying = true;
+  const h = (hash||"").replace(/^#/,"");
+  let m, after = null;
+  const resetFilters = () => { st.q=""; $("q").value=""; st.eje=""; st.sede=""; st.sub=""; $("fEje").value=""; $("fSede").value=""; $("fSub").value=""; };
+  if(h==="escuela"){ if(mode!=="escuela"){ mode="escuela"; try{localStorage.setItem("enc39origin","escuela")}catch(e){} } resetFilters(); if(!sheet.hidden) closeSheet(); setView("list"); }
+  else if((m=h.match(/^t(\d{1,2})$/)) && +m[1]>=1 && +m[1]<=99){ const n=+m[1];
+    resetFilters(); st.q=String(n); $("q").value=st.q; if(!sheet.hidden) closeSheet(); setView("list");
+    if(initial) track("abrir_link_compartido",{taller_n:n, taller:talleres[n-1].nombre, sede:talleres[n-1].s.nombre, eje:talleres[n-1].eje});
+    after = () => { const el=$("t"+n); if(el){ el.classList.add("flash"); el.scrollIntoView({block:"center"}); } }; }
+  else if((m=h.match(/^eje-(\d{1,2})(?:-(.+))?$/)) && ejes[+m[1]]){ resetFilters(); st.eje=m[1]; $("fEje").value=m[1];
+    if(m[2]){ const sub=SUBS.find(x=>slug(x)===m[2]); if(sub){ st.sub=sub; $("fSub").value=sub; } }
+    if(!sheet.hidden) closeSheet(); setView("list"); }
+  else if((m=h.match(/^sede-(\d{1,2})$/)) && sedes["S"+String(+m[1]).padStart(2,"0")]){ const id="S"+String(+m[1]).padStart(2,"0");
+    setView("map"); after = () => { openSheet(id); focusOn(id); }; }
+  else if(h==="pena"){ setView("map"); after = () => { openSheet("PENA"); focusOn("PENA"); }; }
+  else if(h==="mapa-escuela"){ setView("map"); after = () => { openSheet("ESC"); focusOn("ESC"); }; }
+  else if(h==="mapa"){ if(!sheet.hidden) closeSheet(); setView("map"); }
+  else if(h==="lista"){ if(!initial) resetFilters(); if(!sheet.hidden) closeSheet(); setView("list"); }
+  else { setView(st.view); }
+  const done = () => { navApplying = false; syncNav(true); };
+  if(after) requestAnimationFrame(()=>{ after(); done(); }); else done();
+}
+window.addEventListener("popstate", ()=>applyHash(location.hash, false));
+
+// ---- arranque (se lee el hash de entrada antes de dibujar, para no pisarlo)
+const HASH0 = location.hash;
+navApplying = true;
+updateOrigin();
+setUserProps();
+applyHash(HASH0, true);
+// Si el permiso ya estaba dado, arranca solo; si no, espera a que la persona toque "Usar mi ubicación"
+if(mode==="gps"){
+  if(navigator.permissions && navigator.permissions.query){
+    navigator.permissions.query({name:"geolocation"}).then(r=>{
+      if(r.state==="granted") startGeo(false);
+      else if(r.state==="denied"){ geo.status="denied"; updateOrigin(); }
+    }).catch(()=>{});
+  }
+}
+
+</script>
+
+</body>
+</html>
